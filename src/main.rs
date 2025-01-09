@@ -1,39 +1,65 @@
-pub mod procedural;
+use image::{DynamicImage, GrayImage, RgbImage, Rgb};
+
 use procedural::ProceduralGrid;
-use image::{math, DynamicImage, GrayImage, Rgb, RgbImage};
+
+pub mod procedural;
 
 fn main() {
+    let grid = ProceduralGrid::new();
+    let mut buf = vec![vec![0; 256]; 256];
+
     let mut img = RgbImage::new(256, 256);
-    let mut grid = vec![vec![0;256];256];
+
+    let mut min = i32::MAX; // 2147483647
+    let mut max = i32::MIN; // -2147483648
 
     for y in 0..256 {
         for x in 0..256 {
             // let x = x as i64;
             // let y = y as i64;
+            // let val = ((x ^ y) % 11) | ((x | y) % 17);
+            // let val = (x | y) % 17;
+            // let val: i64 = ((((x | 12) - (-x)) ^ (!(x % y))) & (((!y) - (20 +
+            // x)) - (!(-y)))) % 9;
 
-            // let mut val = (x ^ y) % 9;
-            let mut val = ((x | y) - x + y^x) % 17;
-            if val > 255    {
-                val = 255
+            let val = grid.calc(x, y);
+
+            if val < min {
+                min = val;
             }
 
-            // if val < 0  {
-            //     val = 0;
+            if val > max {
+                max = val;
+            }
+
+            // if val > 0 {
+            //     img.put_pixel(x as u32, y as u32, Rgb([255, 255, 255]))
             // }
 
-            let val = val as u8;
-
-            if val > 0  {
-                img.put_pixel(x, y, Rgb([255, 255, 255]))
-            }
-
-            // println!("{:#?}", val);
-
-            // img.put_pixel(x, y , Rgb([val, val, val]));
+            buf[x as usize][y as usize] = val;
         }
     }
+
+    for row in buf.iter_mut() {
+        for val in row.iter_mut() {
+            *val = ((*val-min) * 255) / (max+(-min));
+        }
+    }
+
+    for y in 0..256 {
+        for x in 0..256 {
+            let val = buf[x as usize][y as usize] as u8;
+
+            img.put_pixel(x as u32, y as u32, Rgb([val, val, val]))
+
+        }
+    }
+
     let img = DynamicImage::ImageRgb8(img);
-    // img.resize(256, 256, image::imageops::FilterType::Gaussian);
-    img.save(r"C:\Antonio Arias\projects\bitgrid\src\hello.png");
-    // println!("{grid:?}");
+    // let img: GrayImage = .into_luma8();
+    // img.resize(256, 256, image::imageops::FilterType::Nearest);
+
+    img.save("grid.png").unwrap();
+
+    println!("{:#?}", grid);
 }
